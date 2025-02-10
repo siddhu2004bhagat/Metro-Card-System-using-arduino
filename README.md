@@ -121,6 +121,6 @@ Use IoT for remote access management.
 
 This project is open-source under the MIT License. Feel free to use and modify it for educational purposes.
 
-Made with ❤️ by Your Name
+Made with ❤️ by Team Sk_ElectroTech
 
 
