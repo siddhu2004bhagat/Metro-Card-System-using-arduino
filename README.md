@@ -76,8 +76,7 @@ GND
 
 Clone the repository
 
-git clone https://github.com/yourusername/RFID-Metro-Door-Project.git
-cd RFID-Metro-Door-Project
+https://github.com/siddhu2004bhagat/Metro-Card-System-using-arduino.git
 
 Install Required Libraries
 Open Arduino IDE and install the following libraries from Library Manager (Sketch > Include Library > Manage Libraries):
