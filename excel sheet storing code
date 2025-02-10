@@ -1,0 +1,108 @@
+# Code for Storing In Excel-Sheet
+# First install all these dependencies:
+# pip install serial
+# pip install openpyxl
+
+import serial
+import openpyxl
+import time
+import os
+import re  # Import regex module
+
+# Serial Port Configuration
+SERIAL_PORT = "COM10"  # Change based on your system
+BAUD_RATE = 9600
+EXCEL_FILE = "RFID_Data.xlsx"
+
+# Mapping UID to Names
+rfid_users = {
+    "19 35 57 6D": "Siddhu",
+    "A3 DC 54 FB":"User1",
+    "33 20 42 FB":"User2",
+    "9 A9 54 6D":"Kunal",
+
+    "B9 8C 8C 54": "Ishu"
+}
+
+# Function to create or load an Excel file
+def create_or_load_excel(file_name):
+    if os.path.exists(file_name):
+        return openpyxl.load_workbook(file_name)
+    else:
+        wb = openpyxl.Workbook()
+        sheet = wb.active
+        sheet.title = "RFID Logs"
+        sheet.append(["Timestamp", "User Name", "Card UID", "Access Status"])  # Updated headers
+        wb.save(file_name)
+        return wb
+
+# Function to extract Card UID from serial data
+def extract_card_uid(data):
+    match = re.search(r"Card UID:\s*([\dA-F ]+)", data, re.IGNORECASE)
+    return match.group(1) if match else None
+
+# Function to check access status
+def extract_access_status(data):
+    if "Access Granted" in data:
+        return "Granted"
+    elif "Access Denied" in data:
+        return "Denied"
+    return None
+
+# Function to log data into Excel
+def log_rfid_data():
+    wb = create_or_load_excel(EXCEL_FILE)
+    sheet = wb.active
+
+    try:
+        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+        print(f"Listening on {SERIAL_PORT}... (Press CTRL+C to stop)")
+
+        card_uid = None
+        access_status = None
+
+        while True:
+            if ser.in_waiting > 0:
+                line = ser.readline().decode("utf-8").strip()
+                
+                # Extract UID & Access Status
+                new_uid = extract_card_uid(line)
+                new_status = extract_access_status(line)
+
+                if new_uid:
+                    card_uid = new_uid  # Store UID when detected
+                    access_status = None  # Reset access status until it's found
+                
+                if new_status and card_uid:
+                    access_status = new_status  # Update access status if UID is already detected
+
+                # Save only when both UID and access status are found
+                if card_uid and access_status:
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+
+                    # Get the user name from the dictionary, or store as "Unknown"
+                    user_name = rfid_users.get(card_uid, "Unknown")
+                    
+                    # Append to Excel
+                    sheet.append([timestamp, user_name, card_uid, access_status])
+                    wb.save(EXCEL_FILE)
+
+                    print(f"✅ Saved: {timestamp} | {user_name} | {card_uid} | {access_status}")
+
+                    # Reset values after saving to prevent duplicate logs
+                    card_uid = None
+                    access_status = None
+
+    except KeyboardInterrupt:
+        print("\nLogging stopped by user.")
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+    finally:
+        ser.close()
+        wb.save(EXCEL_FILE)
+        print(f"Data saved to {EXCEL_FILE}")
+
+# Run the Logging Function
+log_rfid_data()
